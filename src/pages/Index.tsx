@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Icon from '@/components/ui/icon';
 
 const Index = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [gameScore, setGameScore] = useState(0);
+  const [gameActive, setGameActive] = useState(false);
+  const [ballPosition, setBallPosition] = useState({ x: 50, y: 50 });
+  const [gameTime, setGameTime] = useState(30);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +21,44 @@ const Index = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Game logic
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (gameActive && gameTime > 0) {
+      timer = setTimeout(() => setGameTime(gameTime - 1), 1000);
+    } else if (gameTime === 0) {
+      setGameActive(false);
+    }
+    return () => clearTimeout(timer);
+  }, [gameActive, gameTime]);
+
+  const startGame = () => {
+    setGameActive(true);
+    setGameScore(0);
+    setGameTime(30);
+    moveBall();
+  };
+
+  const moveBall = useCallback(() => {
+    if (gameActive && gameTime > 0) {
+      setBallPosition({
+        x: Math.random() * 80 + 10,
+        y: Math.random() * 60 + 20
+      });
+      setTimeout(moveBall, 1500);
+    }
+  }, [gameActive, gameTime]);
+
+  const hitBall = () => {
+    if (gameActive) {
+      setGameScore(prev => prev + 1);
+      setBallPosition({
+        x: Math.random() * 80 + 10,
+        y: Math.random() * 60 + 20
+      });
+    }
+  };
 
   const programs = [
     {
@@ -114,27 +154,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Welcome Modal */}
-      <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl font-bold text-green-600">
-              🎾 Добро пожаловать!
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-center space-y-4">
-            <div className="text-6xl">🎁</div>
-            <h3 className="text-xl font-semibold">Первая тренировка БЕСПЛАТНО!</h3>
-            <p className="text-gray-600">
-              Запишитесь на пробное занятие и ощутите атмосферу нашей теннисной школы
-            </p>
-            <Button onClick={() => setShowWelcomeModal(false)} className="w-full bg-green-600 hover:bg-green-700">
-              Записаться на пробную тренировку
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Fixed Header */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled ? 'bg-white shadow-lg py-2' : 'bg-transparent py-4'
@@ -147,8 +166,9 @@ const Index = () => {
           <nav className="hidden md:flex space-x-6">
             <a href="#home" className="text-gray-700 hover:text-green-600 transition-colors">Главная</a>
             <a href="#programs" className="text-gray-700 hover:text-green-600 transition-colors">Программы</a>
+            <a href="#game" className="text-gray-700 hover:text-green-600 transition-colors">Игра</a>
             <a href="#trainers" className="text-gray-700 hover:text-green-600 transition-colors">Тренеры</a>
-            <a href="#reviews" className="text-gray-700 hover:text-green-600 transition-colors">Отзывы</a>
+            <a href="#location" className="text-gray-700 hover:text-green-600 transition-colors">Локация</a>
             <a href="#contacts" className="text-gray-700 hover:text-green-600 transition-colors">Контакты</a>
           </nav>
           <Button className="bg-green-600 hover:bg-green-700">
@@ -217,6 +237,80 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Tennis Game Section */}
+      <section id="game" className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Теннисный тренажёр</h2>
+            <p className="text-xl text-gray-600">Проверьте свою реакцию! Попадите по мячу как можно больше раз за 30 секунд</p>
+          </div>
+          <div className="max-w-4xl mx-auto">
+            <Card className="p-8">
+              <div className="text-center mb-6">
+                <div className="flex justify-center space-x-8 mb-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-600">{gameScore}</div>
+                    <div className="text-sm text-gray-600">Очки</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-blue-600">{gameTime}</div>
+                    <div className="text-sm text-gray-600">Секунд</div>
+                  </div>
+                </div>
+                {!gameActive ? (
+                  <Button 
+                    onClick={startGame} 
+                    size="lg" 
+                    className="bg-green-600 hover:bg-green-700 text-lg px-8 py-3"
+                  >
+                    🎾 Начать игру
+                  </Button>
+                ) : (
+                  <div className="text-lg text-green-600 font-semibold">
+                    Кликайте по мячу! 🎯
+                  </div>
+                )}
+              </div>
+              
+              {gameActive && (
+                <div className="relative bg-green-100 rounded-lg h-80 overflow-hidden border-4 border-green-200">
+                  <div className="absolute inset-0 bg-gradient-to-b from-green-50 to-green-100">
+                    <div 
+                      className="absolute w-12 h-12 bg-yellow-400 rounded-full cursor-pointer transform hover:scale-110 transition-transform duration-150 flex items-center justify-center text-2xl animate-bounce"
+                      style={{
+                        left: `${ballPosition.x}%`,
+                        top: `${ballPosition.y}%`,
+                        transform: `translate(-50%, -50%) scale(${gameActive ? 1 : 0})`
+                      }}
+                      onClick={hitBall}
+                    >
+                      🎾
+                    </div>
+                  </div>
+                  <div className="absolute top-4 left-4 text-sm text-gray-600">
+                    Теннисный корт STAR TENNIS
+                  </div>
+                </div>
+              )}
+              
+              {gameTime === 0 && gameScore > 0 && (
+                <div className="text-center mt-6 p-4 bg-green-50 rounded-lg">
+                  <h3 className="text-xl font-bold text-green-600 mb-2">Игра окончена! 🏆</h3>
+                  <p className="text-gray-700">
+                    Ваш результат: <span className="font-bold text-green-600">{gameScore} попаданий</span>
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {gameScore >= 15 ? "Отличная реакция! 🌟" : 
+                     gameScore >= 10 ? "Хороший результат! 👍" : 
+                     "Тренируйтесь больше! 💪"}
+                  </p>
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Trainers Section */}
       <section id="trainers" className="py-20">
         <div className="container mx-auto px-4">
@@ -234,6 +328,59 @@ const Index = () => {
                 <Badge variant="outline" className="text-sm">{trainer.achievements}</Badge>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Location Section with Yandex Maps */}
+      <section id="location" className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Наши корты</h2>
+            <p className="text-xl text-gray-600">Современные теннисные корты в Новогорске</p>
+          </div>
+          <div className="grid lg:grid-cols-2 gap-12">
+            <div>
+              <h3 className="text-2xl font-bold mb-6">Информация о кортах</h3>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <Icon name="MapPin" className="text-green-600" />
+                  <span>г. Новогорск, ул. Теннисная, 1</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Icon name="Clock" className="text-green-600" />
+                  <span>Работаем ежедневно с 8:00 до 22:00</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Icon name="Zap" className="text-green-600" />
+                  <span>4 профессиональных корта</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Icon name="Umbrella" className="text-green-600" />
+                  <span>Крытые и открытые площадки</span>
+                </div>
+              </div>
+              <div className="mt-8 space-y-3">
+                <h4 className="text-lg font-semibold">Особенности кортов:</h4>
+                <ul className="space-y-2 text-gray-600">
+                  <li>• Покрытие Hard Court (твёрдое)</li>
+                  <li>• Профессиональное освещение</li>
+                  <li>• Система подогрева для зимы</li>
+                  <li>• Раздевалки и душевые</li>
+                  <li>• Прокат инвентаря</li>
+                </ul>
+              </div>
+            </div>
+            <div className="lg:h-96">
+              <iframe
+                src="https://yandex.ru/map-widget/v1/?from=mapframe&ll=37.357892%2C55.894215&source=mapframe&um=constructor%3A1de57a8b197375fee760fceb27afc07ede1a6fa75c75d4c4c58633141914c512&utm_source=mapframe&z=14"
+                width="100%"
+                height="100%"
+                className="rounded-lg border-0"
+                allowFullScreen
+                title="Теннисные корты STAR TENNIS"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -290,44 +437,19 @@ const Index = () => {
             <h2 className="text-4xl font-bold mb-4">Контакты и запись</h2>
             <p className="text-xl text-gray-600">Свяжитесь с нами для записи на занятия</p>
           </div>
-          <div className="grid lg:grid-cols-2 gap-12">
-            <div>
-              <h3 className="text-2xl font-bold mb-6">Информация о школе</h3>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Icon name="MapPin" className="text-green-600" />
-                  <span>г. Новогорск, ул. Теннисная, 1</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Icon name="Phone" className="text-green-600" />
-                  <span>+7 (916) 878-66-99</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Icon name="Mail" className="text-green-600" />
-                  <span>info@star-tennis.ru</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Icon name="Clock" className="text-green-600" />
-                  <span>Ежедневно с 8:00 до 22:00</span>
-                </div>
-              </div>
-              <div className="mt-8 bg-gray-200 rounded-lg h-64 flex items-center justify-center">
-                <div className="text-center text-gray-500">
-                  <Icon name="MapPin" className="w-12 h-12 mx-auto mb-2" />
-                  <p>Интерактивная карта</p>
-                </div>
-              </div>
-            </div>
+          <div className="max-w-2xl mx-auto">
             <Card className="p-8">
               <h3 className="text-2xl font-bold mb-6">Записаться на занятие</h3>
               <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Имя</label>
-                  <Input placeholder="Ваше имя" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Телефон</label>
-                  <Input placeholder="+7 (___) ___-__-__" />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Имя</label>
+                    <Input placeholder="Ваше имя" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Телефон</label>
+                    <Input placeholder="+7 (916) 878-66-99" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Программа</label>
@@ -347,6 +469,17 @@ const Index = () => {
                   Отправить заявку
                 </Button>
               </form>
+              
+              <div className="mt-8 pt-8 border-t text-center space-y-4">
+                <div className="flex justify-center items-center space-x-3">
+                  <Icon name="Phone" className="text-green-600" />
+                  <span className="text-lg font-semibold">+7 (916) 878-66-99</span>
+                </div>
+                <div className="flex justify-center items-center space-x-3">
+                  <Icon name="Mail" className="text-green-600" />
+                  <span>info@star-tennis.ru</span>
+                </div>
+              </div>
             </Card>
           </div>
         </div>
